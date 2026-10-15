@@ -1,0 +1,30 @@
+digraph AttackChain {
+  rankdir=TB;
+  graph [fontname="Microsoft YaHei", bgcolor="white"];
+  node [shape=box, style="rounded,filled", fontname="Microsoft YaHei"];
+  "web-rce" [label="外网 Web 反序列化 RCE\n[T1190]\n检测:high", fillcolor="#FFE0B2"];
+  "webshell" [label="写入并访问 JSP Webshell\n[T1505.003]\n检测:high", fillcolor="#FFCDD2"];
+  "exec-cmd" [label="通过 Webshell 执行系统命令\n[T1059]\n检测:medium", fillcolor="#FFCCBC"];
+  "internal-recon" [label="内网资产与网段探测\n[T1018]\n检测:low", fillcolor="#B3E5FC"];
+  "local-privesc" [label="Web 服务器本地提权\n[T1068]\n检测:low", fillcolor="#FFF9C4"];
+  "cred-dump" [label="抓取本机凭据（SAM / LSASS）\n[T1003.001]\n检测:medium", fillcolor="#C8E6C9"];
+  "lateral-smb" [label="哈希传递横向到域内主机\n[T1021.002]\n检测:high", fillcolor="#BBDEFB"];
+  "golden-ticket" [label="伪造黄金票据\n[T1558.001]\n检测:low", fillcolor="#C8E6C9"];
+  "rdp-brute" [label="边界 RDP 口令爆破/复用\n[T1110.001]\n检测:high", fillcolor="#FFE0B2", color="#D93025", penwidth=2.5];
+  "valid-account" [label="使用已泄露口令登录\n[T1078]\n检测:medium", fillcolor="#FFE0B2", color="#D93025", penwidth=2.5];
+  "lateral-wmi" [label="WMI 远程命令执行横向\n[T1021]\n检测:low", fillcolor="#BBDEFB", color="#D93025", penwidth=2.5];
+  "dcsync" [label="DCSync 抽取域内凭据\n[T1003.006]\n检测:low", fillcolor="#C8E6C9", color="#D93025", penwidth=2.5];
+  "domain-admin" [label="域管理员权限\n[T1068]\n检测:medium", fillcolor="#FFF9C4", color="#D93025", penwidth=2.5];
+  "web-rce" -> "webshell" [color=gray];
+  "webshell" -> "exec-cmd" [color=gray];
+  "exec-cmd" -> "internal-recon" [color=gray];
+  "internal-recon" -> "local-privesc" [color=gray];
+  "local-privesc" -> "cred-dump" [color=gray];
+  "cred-dump" -> "lateral-smb" [color=gray];
+  "lateral-smb" -> "golden-ticket" [color=gray];
+  "rdp-brute" -> "valid-account" [bold,color=red];
+  "valid-account" -> "lateral-wmi" [bold,color=red];
+  "lateral-wmi" -> "dcsync" [bold,color=red];
+  "golden-ticket" -> "domain-admin" [color=gray];
+  "dcsync" -> "domain-admin" [bold,color=red];
+}

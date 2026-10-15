@@ -1,0 +1,272 @@
+# =============================================================================
+# 攻击链示例：红日 VulnStack 8 四层靶场 —— 从外网 Web 打点到域控
+# -----------------------------------------------------------------------------
+# 场景：本地 VMware 自建靶场（授权环境），纯教学与复盘用途。
+# 这个例子的价值在于：它把「口令一般的几条 tactics」变成了可计算的图 ——
+#   ① 最短路径告诉你防守该在哪一点设卡
+#   ② SPOF 告诉你哪一点被打掉整条链就废
+#   ③ 备用路径校验告诉你红队是不是真的有第二手
+#   ④ 检测盲区告诉你这条路上防守方哪里是瞎的
+# =============================================================================
+
+meta:
+  name: VulnStack8 四层靶场攻击链
+  target: 红日 VulnStack 8（本地 VMware 自建靶场）
+  author: cypewake
+  date: 2026-10-15
+  scenario: >
+    Web 服务器双网卡，外网段可直接访问；域内网段只能通过 Web 服务器跳转。
+    目标是拿到域管理员权限。本文件建模了两条互斥的进攻路线：
+    Web 反序列化打点链 与 边界 RDP 口令复用链。
+
+objectives:
+  - id: domain-admin
+    name: 域管理员权限
+    tactic: Privilege Escalation
+    note: 拿到 Domain Admins 组权限，可控制全域所有主机
+
+nodes:
+  # ---------------------------------------------------------------- 路线 A
+  - id: web-rce
+    name: 外网 Web 反序列化 RCE
+    tactic: Initial Access
+    technique: T1190
+    kind: entry
+    asset: web01（双网卡 / 10.10.10.5）
+    detectability: high          # WAF 与访问日志通常能捕捉反序列化探测
+    detect_tips:
+      - "WAF 拦截告警：Java 反序列化特征（aced0005）"
+      - "Web 访问日志中异常 POST 体积与 UA"
+    impact: 5
+    fail_rate: 0.2
+    note: VulnStack8 外层一般是 Struts2 / Shiro / Fastjson，先判定框架再选载荷
+
+  - id: webshell
+    name: 写入并访问 JSP Webshell
+    tactic: Persistence
+    technique: T1505.003
+    kind: foothold
+    asset: web01
+    requires: [web-rce]
+    detectability: high
+    detect_tips:
+      - "主机文件监控（新建 .jsp）"
+      - "上传/解析目录的文件完整性监控(AIDE)"
+    impact: 3
+    fail_rate: 0.15
+    note: Tomcat webapps 目录可写是关键；注意冰蝎/哥斯拉流量已进入 WAF 特征库
+
+  - id: exec-cmd
+    name: 通过 Webshell 执行系统命令
+    tactic: Execution
+    technique: T1059
+    kind: foothold
+    asset: web01
+    requires: [webshell]
+    detectability: medium
+    detect_tips:
+      - "进程创建审计 4688 / auditd execve"
+      - "Web 服务进程派生 cmd.exe / /bin/sh 的父子关系告警"
+    impact: 2
+    fail_rate: 0.1
+
+  - id: internal-recon
+    name: 内网资产与网段探测
+    tactic: Discovery
+    technique: T1018
+    kind: lateral
+    asset: web01 → 域内 10.10.20.0/24
+    requires: [exec-cmd]
+    detectability: low           # 内网几乎没有横向流量传感器
+    detect_tips:
+      - "内网 NTA / 流量镜像（多数靶场与中小企业没有）"
+    impact: 2
+    fail_rate: 0.15
+    note: 这一环通常是盲区，靠 fscan/SharpScan 扫一整轮也没人管
+
+  - id: local-privesc
+    name: Web 服务器本地提权
+    tactic: Privilege Escalation
+    technique: T1068
+    kind: foothold
+    asset: web01
+    requires: [internal-recon]
+    detectability: low
+    detect_tips:
+      - "内核利用较难捕获，建议关注进程令牌提升 4672"
+    impact: 4
+    fail_rate: 0.4
+    note: Windows 2008/2012 老内核提权exp成功率受补丁影响很大，失败率给 0.4
+
+  - id: cred-dump
+    name: 抓取本机凭据（SAM / LSASS）
+    tactic: Credential Access
+    technique: T1003.001
+    kind: lateral
+    asset: web01
+    requires: [local-privesc]
+    detectability: medium
+    detect_tips:
+      - "LSASS 句柄访问告警（Sysmon 10 / EDR）"
+      - "SAM 注册表 hive 导出行为"
+    impact: 4
+    fail_rate: 0.25
+    note: mimikatz 特征明显，建议先从内存用 procdump 落地再离线解析，降暴露
+
+  - id: lateral-smb
+    name: 哈希传递横向到域内主机
+    tactic: Lateral Movement
+    technique: T1021.002
+    kind: lateral
+    asset: web01 → srv02 (10.10.20.12)
+    requires: [cred-dump]
+    detectability: high
+    detect_tips:
+      - "4624 Type 3 网络登录 + 异常源主机"
+      - "SMB 会话异常 + Pass-the-Hash 行为特征"
+    impact: 3
+    fail_rate: 0.3
+
+  - id: golden-ticket
+    name: 伪造黄金票据
+    tactic: Credential Access
+    technique: T1558.001
+    kind: lateral
+    asset: 域控 god.org / 10.10.20.5
+    requires: [lateral-smb]
+    detectability: low
+    detect_tips:
+      - "域控 Kerberos 日志 4769（异常加密类型 RC4）"
+      - "krbtgt 账户最后修改时间监控（这是根治手段）"
+    impact: 5
+    fail_rate: 0.35
+    note: 需要拿到 krbtgt 的 NTLM Hash，前提是已经在域控上执行过 DCSync 或同类操作
+
+  # ---------------------------------------------------------------- 路线 B
+  - id: rdp-brute
+    name: 边界 RDP 口令爆破/复用
+    tactic: Initial Access
+    technique: T1110.001
+    kind: entry
+    asset: 边界跳板机 (192.168.x.x)
+    detectability: high
+    detect_tips:
+      - "4625 失败登录风暴告警"
+      - "设备合规/堡垒机双因子策略"
+    impact: 3
+    fail_rate: 0.5
+    note: 高收益低门槛，但日志极明显；实战里优先级低于 Web 打点
+
+  - id: valid-account
+    name: 使用已泄露口令登录
+    tactic: Initial Access
+    technique: T1078
+    kind: foothold
+    asset: 边界跳板机
+    requires: [rdp-brute]
+    detectability: medium
+    detect_tips:
+      - "异地/异常时间登录基线"
+      - "4624 Type 10 的源 IP 归属"
+    impact: 3
+    fail_rate: 0.2
+
+  - id: lateral-wmi
+    name: WMI 远程命令执行横向
+    tactic: Lateral Movement
+    technique: T1021
+    kind: lateral
+    asset: 跳板机 → srv02
+    requires: [valid-account]
+    detectability: low
+    detect_tips:
+      - "WMI 活动日志 5857/5859（需手动开启）"
+      - "WinRM/SMB Pipe 行为（Sysmon 17/18）"
+    impact: 3
+    fail_rate: 0.3
+    note: WMI 是典型的低可见度横向手法，默认几乎不开日志
+
+  - id: dcsync
+    name: DCSync 抽取域内凭据
+    tactic: Credential Access
+    technique: T1003.006
+    kind: lateral
+    asset: 域控 10.10.20.5
+    requires: [lateral-wmi]
+    detectability: low
+    detect_tips:
+      - "域控 4662 目录服务访问（需配 SACL）"
+      - "非域控主机向 DC 发起 DSBind 请求的异常行为"
+    impact: 5
+    fail_rate: 0.3
+    note: 默认审计策略基本抓不到；这是本链路最隐蔽的一步
+
+  # ---------------------------------------------------------------- 目标
+  - id: domain-admin
+    name: 域管理员权限
+    tactic: Privilege Escalation
+    technique: T1068
+    kind: objective
+    asset: 域控 god.org
+    requires: [golden-ticket, dcsync]
+    detectability: medium
+    detect_tips:
+      - "4756 域管理员组成员变更"
+      - "4672 特殊权限登录"
+    impact: 10
+    fail_rate: 0.05
+
+edges:
+  # 路线 A 的跃迁条件与失败率
+  - src: web-rce
+    dst: webshell
+    condition: 目标目录可写且可解析
+    fail_rate: 0.15
+  - src: webshell
+    dst: exec-cmd
+    condition: 能绕过 WAF 的命令执行
+    fail_rate: 0.1
+  - src: exec-cmd
+    dst: internal-recon
+    condition: 双网卡已打通内网路由
+    fail_rate: 0.2
+  - src: internal-recon
+    dst: local-privesc
+    condition: 内核未打对应补丁
+    fail_rate: 0.3
+  - src: local-privesc
+    dst: cred-dump
+    condition: 已获 SYSTEM
+    fail_rate: 0.1
+  - src: cred-dump
+    dst: lateral-smb
+    condition: 域内有主机复用同一本地管理员口令
+    fail_rate: 0.25
+  - src: lateral-smb
+    dst: golden-ticket
+    condition: 已在域控取到 krbtgt
+    fail_rate: 0.2
+
+  # 路线 B 的跃迁
+  - src: rdp-brute
+    dst: valid-account
+    condition: 口令来自泄露库或 sprayed 命中
+    fail_rate: 0.3
+  - src: valid-account
+    dst: lateral-wmi
+    condition: 目标开启 WMI 且放行 135/动态端口
+    fail_rate: 0.25
+  - src: lateral-wmi
+    dst: dcsync
+    condition: 该账号具备域复制权限
+    fail_rate: 0.3
+
+  # 到达目标
+  - src: golden-ticket
+    dst: domain-admin
+    condition: 票据注入成功
+    fail_rate: 0.1
+  - src: dcsync
+    dst: domain-admin
+    condition: 已拿到 Administrator 的 NTLM
+    fail_rate: 0.15

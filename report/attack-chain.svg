@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="774" height="1323" viewBox="0 0 774 1323">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8A94A6"/></marker>
+<marker id="arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#D93025"/></marker>
+</defs>
+<rect x="0" y="0" width="774" height="1323" fill="#FFFFFF"/>
+<style>text{font-family:"Microsoft YaHei","Noto Sans CJK SC","PingFang SC","Hiragino Sans GB","WenQuanYi Micro Hei",sans-serif;dominant-baseline:middle;}</style>
+<text x="40" y="24" font-size="17" font-weight="bold" fill="#1F2328">VulnStack8 四层靶场攻击链</text>
+<path d="M 156.9 119.0 C 156.9 263.5, 138.6 263.5, 138.6 408.0" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="147.8" y="263.5" font-size="11" fill="#6E7781" text-anchor="middle">目标目录可写且可解析</text>
+<path d="M 237.3 447.5 C 237.3 355.5, 40.0 355.5, 40.0 263.5" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="138.6" y="355.5" font-size="11" fill="#6E7781" text-anchor="middle">能绕过 WAF 的命令执行</text>
+<path d="M 145.8 303.0 C 145.8 631.5, 151.3 631.5, 151.3 960.0" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="148.5" y="631.5" font-size="11" fill="#6E7781" text-anchor="middle">双网卡已打通内网路由</text>
+<path d="M 262.6 999.5 C 262.6 815.5, 40.0 815.5, 40.0 631.5" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="151.3" y="815.5" font-size="11" fill="#6E7781" text-anchor="middle">内核未打对应补丁</text>
+<path d="M 119.2 671.0 C 119.2 723.5, 158.5 723.5, 158.5 776.0" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="138.8" y="723.5" font-size="11" fill="#6E7781" text-anchor="middle">已获 SYSTEM</text>
+<path d="M 158.5 855.0 C 158.5 999.5, 156.6 999.5, 156.6 1144.0" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="157.5" y="999.5" font-size="11" fill="#6E7781" text-anchor="middle">域内有主机复用同一本地管理员口令</text>
+<path d="M 273.1 1183.5 C 273.1 999.5, 315.0 999.5, 315.0 815.5" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="294.1" y="999.5" font-size="11" fill="#6E7781" text-anchor="middle">已在域控取到 krbtgt</text>
+<path d="M 514.8 79.5 C 514.8 79.5, 552.8 79.5, 552.8 79.5" fill="none" stroke="#D93025" stroke-width="2.6" marker-end="url(#arrow-hot)"/>
+<text x="533.8" y="79.5" font-size="11" fill="#6E7781" text-anchor="middle">口令来自泄露库或 sprayed …</text>
+<path d="M 629.8 119.0 C 629.8 631.5, 398.8 631.5, 398.8 1144.0" fill="none" stroke="#D93025" stroke-width="2.6" marker-end="url(#arrow-hot)"/>
+<text x="514.3" y="631.5" font-size="11" fill="#6E7781" text-anchor="middle">目标开启 WMI 且放行 135/…</text>
+<path d="M 486.5 1183.5 C 486.5 999.5, 564.4 999.5, 564.4 815.5" fill="none" stroke="#D93025" stroke-width="2.6" marker-end="url(#arrow-hot)"/>
+<text x="525.5" y="999.5" font-size="11" fill="#6E7781" text-anchor="middle">该账号具备域复制权限</text>
+<path d="M 526.4 815.5 C 526.4 723.5, 236.3 723.5, 236.3 631.5" fill="none" stroke="#8A94A6" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="381.4" y="723.5" font-size="11" fill="#6E7781" text-anchor="middle">票据注入成功</text>
+<path d="M 734.9 815.5 C 734.9 723.5, 236.3 723.5, 236.3 631.5" fill="none" stroke="#D93025" stroke-width="2.6" marker-end="url(#arrow-hot)"/>
+<text x="485.6" y="723.5" font-size="11" fill="#6E7781" text-anchor="middle">已拿到 Administrator…</text>
+<rect x="40.0" y="40.0" width="233.8" height="79.0" rx="8" ry="8" fill="#FFE0B2" stroke="#57606A" stroke-width="1.0"/>
+<text x="156.9" y="60.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">外网 Web 反序列化 RCE</text>
+<text x="156.9" y="76.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1190] 检测:高</text>
+<text x="156.9" y="92.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01（双网卡 / 10.10.10.5）</text>
+<rect x="311.8" y="40.0" width="203.0" height="79.0" rx="8" ry="8" fill="#FFE0B2" stroke="#D93025" stroke-width="2.4"/>
+<text x="413.3" y="60.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">边界 RDP 口令爆破/复用</text>
+<text x="413.3" y="76.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1110.001] 检测:高</text>
+<text x="413.3" y="92.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@边界跳板机 (192.168.x.x)</text>
+<rect x="552.8" y="40.0" width="154.0" height="79.0" rx="8" ry="8" fill="#FFE0B2" stroke="#D93025" stroke-width="2.4"/>
+<text x="629.8" y="60.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">使用已泄露口令登录</text>
+<text x="629.8" y="76.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1078] 检测:中</text>
+<text x="629.8" y="92.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@边界跳板机</text>
+<rect x="40.0" y="224.0" width="211.5" height="79.0" rx="8" ry="8" fill="#FFCCBC" stroke="#57606A" stroke-width="1.0"/>
+<text x="145.8" y="244.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">通过 Webshell 执行系统命令</text>
+<text x="145.8" y="260.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1059] 检测:中</text>
+<text x="145.8" y="276.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01</text>
+<rect x="40.0" y="408.0" width="197.3" height="79.0" rx="8" ry="8" fill="#FFCDD2" stroke="#57606A" stroke-width="1.0"/>
+<text x="138.6" y="428.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">写入并访问 JSP Webshell</text>
+<text x="138.6" y="444.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1505.003] 检测:高</text>
+<text x="138.6" y="460.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01</text>
+<rect x="40.0" y="592.0" width="158.3" height="79.0" rx="8" ry="8" fill="#FFF9C4" stroke="#57606A" stroke-width="1.0"/>
+<text x="119.2" y="612.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">Web 服务器本地提权</text>
+<text x="119.2" y="628.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1068] 检测:低</text>
+<text x="119.2" y="644.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01</text>
+<rect x="236.3" y="592.0" width="140.8" height="79.0" rx="8" ry="8" fill="#FFF9C4" stroke="#D93025" stroke-width="2.4"/>
+<text x="306.8" y="612.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">域管理员权限</text>
+<text x="306.8" y="628.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1068] 检测:中</text>
+<text x="306.8" y="644.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@域控 god.org</text>
+<rect x="40.0" y="776.0" width="237.0" height="79.0" rx="8" ry="8" fill="#C8E6C9" stroke="#57606A" stroke-width="1.0"/>
+<text x="158.5" y="796.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">抓取本机凭据（SAM / LSASS）</text>
+<text x="158.5" y="812.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1003.001] 检测:中</text>
+<text x="158.5" y="828.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01</text>
+<rect x="315.0" y="776.0" width="211.4" height="79.0" rx="8" ry="8" fill="#C8E6C9" stroke="#57606A" stroke-width="1.0"/>
+<text x="420.7" y="796.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">伪造黄金票据</text>
+<text x="420.7" y="812.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1558.001] 检测:低</text>
+<text x="420.7" y="828.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@域控 god.org / 10.10.20.5</text>
+<rect x="564.4" y="776.0" width="170.5" height="79.0" rx="8" ry="8" fill="#C8E6C9" stroke="#D93025" stroke-width="2.4"/>
+<text x="649.7" y="796.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">DCSync 抽取域内凭据</text>
+<text x="649.7" y="812.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1003.006] 检测:低</text>
+<text x="649.7" y="828.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@域控 10.10.20.5</text>
+<rect x="40.0" y="960.0" width="222.6" height="79.0" rx="8" ry="8" fill="#B3E5FC" stroke="#57606A" stroke-width="1.0"/>
+<text x="151.3" y="980.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">内网资产与网段探测</text>
+<text x="151.3" y="996.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1018] 检测:低</text>
+<text x="151.3" y="1012.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01 → 域内 10.10.20.0/24</text>
+<rect x="40.0" y="1144.0" width="233.1" height="79.0" rx="8" ry="8" fill="#BBDEFB" stroke="#57606A" stroke-width="1.0"/>
+<text x="156.6" y="1164.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">哈希传递横向到域内主机</text>
+<text x="156.6" y="1180.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1021.002] 检测:高</text>
+<text x="156.6" y="1196.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@web01 → srv02 (10.10.20.12)</text>
+<rect x="311.1" y="1144.0" width="175.4" height="79.0" rx="8" ry="8" fill="#BBDEFB" stroke="#D93025" stroke-width="2.4"/>
+<text x="398.8" y="1164.5" font-size="14" font-weight="bold" fill="#1F2328" text-anchor="middle">WMI 远程命令执行横向</text>
+<text x="398.8" y="1180.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">[T1021] 检测:低</text>
+<text x="398.8" y="1196.5" font-size="11.5" font-weight="normal" fill="#57606A" text-anchor="middle">@跳板机 → srv02</text>
+<text x="40" y="1293.0" font-size="12" fill="#57606A">红线 = 当前最短攻击路径 ｜ 底色 = ATT&CK 战术阶段</text>
+</svg>

@@ -1,0 +1,124 @@
+{
+  "source": "MITRE ATT&CK Enterprise v14",
+  "url": "https://attack.mitre.org/",
+  "note": "只保留本项目实际用到的战术子集。全量矩阵约 3MB，不适合放进仓库。",
+  "tactics": {
+    "Initial Access": {
+      "id": "TA0001",
+      "name_zh": "初始访问",
+      "color": "#FFE0B2",
+      "order": 1,
+      "data_sources": ["Web 访问日志", "WAF 日志", "边界防火墙会话日志"],
+      "techniques": {
+        "T1190": "Exploit Public-Facing Application",
+        "T1133": "External Remote Services",
+        "T1505.003": "Server Software Component: Web Shell",
+        "T1078": "Valid Accounts"
+      }
+    },
+    "Execution": {
+      "id": "TA0002",
+      "name_zh": "执行",
+      "color": "#FFCCBC",
+      "order": 2,
+      "data_sources": ["进程创建日志", "Windows 安全日志 4688", "Linux auditd execve"],
+      "techniques": {
+        "T1059": "Command and Scripting Interpreter",
+        "T1059.001": "Command and Scripting Interpreter: PowerShell",
+        "T1053": "Scheduled Task/Job",
+        "T1203": "Exploitation for Client Execution"
+      }
+    },
+    "Persistence": {
+      "id": "TA0003",
+      "name_zh": "持久化",
+      "color": "#FFCDD2",
+      "order": 3,
+      "data_sources": ["注册表变更监控", "计划任务审计", "容器组件注册表快照"],
+      "techniques": {
+        "T1505.003": "Server Software Component: Web Shell",
+        "T1546": "Event Triggered Execution",
+        "T1053.005": "Scheduled Task",
+        "T1547.001": "Registry Run Keys"
+      }
+    },
+    "Privilege Escalation": {
+      "id": "TA0004",
+      "name_zh": "权限提升",
+      "color": "#FFF9C4",
+      "order": 4,
+      "data_sources": ["进程审计 4688", "服务变更 4697", "Linux sudo/audit 日志"],
+      "techniques": {
+        "T1068": "Exploitation for Privilege Escalation",
+        "T1548": "Abuse Elevation Control Mechanism",
+        "T1055": "Process Injection"
+      }
+    },
+    "Credential Access": {
+      "id": "TA0006",
+      "name_zh": "凭据访问",
+      "color": "#C8E6C9",
+      "order": 5,
+      "data_sources": ["Windows 安全日志 4624/4625/4672", "SAM/LSASS 访问告警", "域控 Kerberos 日志"],
+      "techniques": {
+        "T1003": "OS Credential Dumping",
+        "T1003.001": "OS Credential Dumping: LSASS Memory",
+        "T1003.006": "OS Credential Dumping: DCSync",
+        "T1110": "Brute Force",
+        "T1110.001": "Password Guessing",
+        "T1558": "Steal or Forge Kerberos Tickets",
+        "T1558.001": "Golden Ticket",
+        "T1552": "Unsecured Credentials"
+      }
+    },
+    "Discovery": {
+      "id": "TA0007",
+      "name_zh": "发现",
+      "color": "#B3E5FC",
+      "order": 6,
+      "data_sources": ["网络流量元数据采集", "命令行审计", "AD 查询日志"],
+      "techniques": {
+        "T1087": "Account Discovery",
+        "T1083": "File and Directory Discovery",
+        "T1018": "Remote System Discovery",
+        "T1069": "Permission Groups Discovery"
+      }
+    },
+    "Lateral Movement": {
+      "id": "TA0008",
+      "name_zh": "横向移动",
+      "color": "#BBDEFB",
+      "order": 7,
+      "data_sources": ["内网流量日志", "Windows 4624 Type 3 登录", "SMB/WinRM 会话日志"],
+      "techniques": {
+        "T1021": "Remote Services",
+        "T1021.002": "Remote Services: SMB/Windows Admin Shares",
+        "T1570": "Lateral Tool Transfer",
+        "T1550": "Use of Alternate Authentication Material"
+      }
+    },
+    "Command and Control": {
+      "id": "TA0011",
+      "name_zh": "命令与控制",
+      "color": "#E1BEE7",
+      "order": 8,
+      "data_sources": ["DNS 日志", "代理/出口流量日志", "TLS JA3/JA4 指纹"],
+      "techniques": {
+        "T1071": "Application Layer Protocol",
+        "T1572": "Protocol Tunneling",
+        "T1090": "Proxy"
+      }
+    },
+    "Exfiltration": {
+      "id": "TA0010",
+      "name_zh": "数据渗出",
+      "color": "#F8BBD0",
+      "order": 9,
+      "data_sources": ["DLP", "出口流量体积告警", "对象存储访问日志"],
+      "techniques": {
+        "T1041": "Exfiltration Over C2 Channel",
+        "T1567": "Exfiltration Over Web Service"
+      }
+    }
+  }
+}

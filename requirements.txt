@@ -1,0 +1,5 @@
+# attack-chain 运行依赖（Python 3.10+）
+# 安装：pip install -r requirements.txt
+networkx>=3.0        # 图算法：最短路径、割点、节点不相交路径
+PyYAML>=6.0          # 攻击链 YAML 加载
+Pillow>=10.0         # 内置布局器位图渲染（PNG）与 PDF 导出

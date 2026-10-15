@@ -1,0 +1,274 @@
+{
+  "weight": "balanced",
+  "node_count": 13,
+  "edge_count": 12,
+  "entries": [
+    "web-rce",
+    "rdp-brute"
+  ],
+  "objectives": [
+    "domain-admin"
+  ],
+  "shortest_path": [
+    "rdp-brute",
+    "valid-account",
+    "lateral-wmi",
+    "dcsync",
+    "domain-admin"
+  ],
+  "shortest_path_cost": 6.567,
+  "shortest_path_success_rate": 0.058164,
+  "spof": [],
+  "chokepoints": [
+    {
+      "node": "cred-dump",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "dcsync",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "exec-cmd",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "golden-ticket",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "internal-recon",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "lateral-smb",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "lateral-wmi",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "local-privesc",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "valid-account",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    },
+    {
+      "node": "webshell",
+      "coverage": 0.5,
+      "paths_through": 1,
+      "total_paths": 2
+    }
+  ],
+  "backup_paths": [
+    [
+      "rdp-brute",
+      "valid-account",
+      "lateral-wmi",
+      "dcsync",
+      "domain-admin"
+    ],
+    [
+      "web-rce",
+      "webshell",
+      "exec-cmd",
+      "internal-recon",
+      "local-privesc",
+      "cred-dump",
+      "lateral-smb",
+      "golden-ticket",
+      "domain-admin"
+    ]
+  ],
+  "backup_disjoint": true,
+  "backup_conflicts": [],
+  "detection_gaps_all": [
+    {
+      "node": "internal-recon",
+      "name": "内网资产与网段探测",
+      "technique": "T1018",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    },
+    {
+      "node": "local-privesc",
+      "name": "Web 服务器本地提权",
+      "technique": "T1068",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    },
+    {
+      "node": "golden-ticket",
+      "name": "伪造黄金票据",
+      "technique": "T1558.001",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    },
+    {
+      "node": "lateral-wmi",
+      "name": "WMI 远程命令执行横向",
+      "technique": "T1021",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    },
+    {
+      "node": "dcsync",
+      "name": "DCSync 抽取域内凭据",
+      "technique": "T1003.006",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    }
+  ],
+  "detection_gaps_on_shortest": [
+    {
+      "node": "lateral-wmi",
+      "name": "WMI 远程命令执行横向",
+      "technique": "T1021",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    },
+    {
+      "node": "dcsync",
+      "name": "DCSync 抽取域内凭据",
+      "technique": "T1003.006",
+      "risk": "防守方在此环节缺少有效数据源",
+      "suggestion": "补充数据源，或接受该环节不可见并在上游/下游设卡"
+    }
+  ],
+  "meta": {
+    "name": "VulnStack8 四层靶场攻击链",
+    "target": "红日 VulnStack 8（本地 VMware 自建靶场）",
+    "scenario": "Web 服务器双网卡，外网段可直接访问；域内网段只能通过 Web 服务器跳转。 目标是拿到域管理员权限。本文件建模了两条互斥的进攻路线： Web 反序列化打点链 与 边界 RDP 口令复用链。\n"
+  },
+  "defenses": [
+    {
+      "blocked": [
+        "cred-dump"
+      ],
+      "before_path": [
+        "rdp-brute",
+        "valid-account",
+        "lateral-wmi",
+        "dcsync",
+        "domain-admin"
+      ],
+      "after_path": [
+        "rdp-brute",
+        "valid-account",
+        "lateral-wmi",
+        "dcsync",
+        "domain-admin"
+      ],
+      "still_reachable": true,
+      "alternative_paths": [
+        [
+          "rdp-brute",
+          "valid-account",
+          "lateral-wmi",
+          "dcsync",
+          "domain-admin"
+        ]
+      ],
+      "independent_path_count": 1,
+      "impact": "仍有完整路径（最短 5 跳）"
+    },
+    {
+      "blocked": [
+        "dcsync"
+      ],
+      "before_path": [
+        "rdp-brute",
+        "valid-account",
+        "lateral-wmi",
+        "dcsync",
+        "domain-admin"
+      ],
+      "after_path": [
+        "web-rce",
+        "webshell",
+        "exec-cmd",
+        "internal-recon",
+        "local-privesc",
+        "cred-dump",
+        "lateral-smb",
+        "golden-ticket",
+        "domain-admin"
+      ],
+      "still_reachable": true,
+      "alternative_paths": [
+        [
+          "web-rce",
+          "webshell",
+          "exec-cmd",
+          "internal-recon",
+          "local-privesc",
+          "cred-dump",
+          "lateral-smb",
+          "golden-ticket",
+          "domain-admin"
+        ]
+      ],
+      "independent_path_count": 1,
+      "impact": "仍有完整路径（最短 9 跳）"
+    },
+    {
+      "blocked": [
+        "exec-cmd"
+      ],
+      "before_path": [
+        "rdp-brute",
+        "valid-account",
+        "lateral-wmi",
+        "dcsync",
+        "domain-admin"
+      ],
+      "after_path": [
+        "rdp-brute",
+        "valid-account",
+        "lateral-wmi",
+        "dcsync",
+        "domain-admin"
+      ],
+      "still_reachable": true,
+      "alternative_paths": [
+        [
+          "rdp-brute",
+          "valid-account",
+          "lateral-wmi",
+          "dcsync",
+          "domain-admin"
+        ]
+      ],
+      "independent_path_count": 1,
+      "impact": "仍有完整路径（最短 5 跳）"
+    }
+  ],
+  "problems": [
+    {
+      "node": "rdp-brute",
+      "level": "warning",
+      "message": "战术声明 'Initial Access' 与本地表中 T1110.001 的归属 'Credential Access' 不一致"
+    }
+  ]
+}
