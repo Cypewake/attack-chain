@@ -31,7 +31,7 @@ jobs:
 
       - name: 示例链冒烟（渲染 + 报告 + JSON 全流程）
         run: |
-          python -m attackchain --input examples/vulnstack8-chain.yaml --out /tmp/smoke
+          python -m attackchain --input examples/vulnstack8-chain.yaml --out /tmp/smoke --json /tmp/smoke/result.json
           test -f /tmp/smoke/report.md
           test -f /tmp/smoke/result.json
           test -f /tmp/smoke/attack-chain.svg
