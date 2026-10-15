@@ -298,6 +298,9 @@ def path_success_rate(chain: Chain, path: Sequence[str]) -> float:
 
     这是把「链」当链看的直接后果：单步成功率看着都不低，
     串起来可能只剩下百分之几 —— 这条数值能直接支撑红队「要不要多准备一条路」的判断。
+
+    性能说明：先用 O(E) 把边表建成 {(src,dst): edge} 的哈希索引，
+    之后每条边 O(1) 命中 —— 旧的线性扫描版在长链上是 O(路径长 × E)。
     """
     if len(path) < 2:
         return 0.0
@@ -305,8 +308,9 @@ def path_success_rate(chain: Chain, path: Sequence[str]) -> float:
     for nid in path:
         node = chain.nodes[nid]
         rate *= (1.0 - node.fail_rate)
+    edge_index = {(e.src, e.dst): e for e in chain.edges}
     for u, v in zip(path, path[1:]):
-        edge = g_edge(chain, u, v)
+        edge = edge_index.get((u, v))
         if edge is not None:
             rate *= (1.0 - edge.fail_rate)
     return round(rate, 6)
@@ -370,7 +374,11 @@ def analyze(chain: Chain, weight: str = "balanced") -> dict:
     entries, objectives = chain.entries, chain.objective_ids
 
     best = shortest_path(g, entries, objectives)
-    ok, conflicts = paths_are_disjoint(backup_paths(g, entries, objectives, wanted=2), strict=False)
+
+    # 备用路径只算一次（wanted=3），报告与不相交校验共用同一批结果，
+    # 避免旧版把贪心搜索跑两遍（每遍都是一次 Dijkstra + 图拷贝）。
+    bps = backup_paths(g, entries, objectives, wanted=3)
+    ok, conflicts = paths_are_disjoint(bps[:2], strict=False)
 
     result: Dict[str, object] = {
         "weight": weight,
@@ -387,7 +395,7 @@ def analyze(chain: Chain, weight: str = "balanced") -> dict:
         "shortest_path_success_rate": path_success_rate(chain, best) if best else 0.0,
         "spof": find_spof(g, entries, objectives),
         "chokepoints": chokepoint_ranking(g, entries, objectives),
-        "backup_paths": backup_paths(g, entries, objectives, wanted=3),
+        "backup_paths": bps,
         "backup_disjoint": ok,
         "backup_conflicts": conflicts,
         "detection_gaps_all": detection_gaps(g),

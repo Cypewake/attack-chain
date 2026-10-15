@@ -20,6 +20,8 @@ from .loader import ChainError, load_chain_file
 from .render import render
 from .report import build_report, write_report
 
+from . import __version__
+
 DEFAULT_FORMATS = "svg,png,dot,mmd"
 
 
@@ -28,6 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="attackchain",
         description="攻击链路径分析：图 + 最短路径 + 单点故障 + 备用路径 + 检测盲区",
     )
+    p.add_argument("--version", action="version", version=f"attackchain {__version__}")
     p.add_argument("--input", "-i", required=True, help="攻击链 YAML 文件")
     p.add_argument("--out", "-o", default="report", help="输出目录（默认 report/）")
     p.add_argument(

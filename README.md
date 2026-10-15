@@ -46,6 +46,17 @@ Credential Access —— 加载时会提示模型一致性告警，属预期行�
 
 详见 [docs/开发文档.md](docs/开发文档.md)（含本地实测环境结论与实跑记录）。
 
+## 开发与测试
+
+```bash
+pip install -r requirements.txt pytest
+python -m pytest tests/ -v          # 25 个用例：模型校验 / 图算法 / 防守模拟 / 示例回归
+```
+
+测试覆盖 `model`（字段合法性）、`analyze`（四种权重口径、最短路径、SPOF、
+卡点排序、备用路径不相交、成功率乘法衰减、防守模拟）、`loader`（YAML 加载与
+示例链回归）。CI 在 GitHub Actions 上跑 Python 3.10–3.13 矩阵 + 示例链冒烟。
+
 ## 品牌资产
 
 | 文件 | 用途 |
