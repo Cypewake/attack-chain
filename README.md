@@ -38,9 +38,11 @@ python -m attackchain --input examples/vulnstack8-chain.yaml --out report --weig
 
 ## 示例说明
 
-`examples/vulnstack8-chain.yaml`：红日 VulnStack 8 靶场的简化攻击链（Web 入口 → 域控，13 节点/12 边）。
-示例中 T1110.001 被建模为 Initial Access（口令喷洒作为入口动作），ATT&CK 官方归属为
-Credential Access —— 加载时会提示模型一致性告警，属预期行为，不是 bug。
+- `examples/vulnstack8-chain.yaml`：红日 VulnStack 8 靶场的简化攻击链（Web 入口 → 域控，13 节点/12 边）。
+  示例中 T1110.001 被建模为 Initial Access（口令喷洒作为入口动作），ATT&CK 官方归属为
+  Credential Access —— 加载时会提示模型一致性告警，属预期行为，不是 bug。
+- `examples/vulnstack7-chain.yaml`：红日 VulnStack 7 三层靶场（外网 Redis → 内网1 双跳板 → 内网2 域控，15 节点/16 边）。
+  完整使用示范见 [docs/使用教程-红日7示范.md](docs/使用教程-红日7示范.md)（含实跑输出逐行解读与防守模拟演示）。
 
 ## 设计文档
 

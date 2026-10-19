@@ -1,0 +1,331 @@
+# =============================================================================
+# 攻击链示例：红日 VulnStack 7 三层靶场 —— 从外网 Redis 到域控
+# -----------------------------------------------------------------------------
+# 场景：本地 VMware 自建靶场（授权环境），纯教学与复盘用途。
+# 拓扑（已对照公开 walkthrough 多源核实）：
+#   外网(Kali) → Web1 (192.168.59.141 / 192.168.52.10，Linux：Nginx+Redis)
+#             → 内网1 (192.168.52.0/24)：Web2 (52.20，Laravel+Docker)、
+#                                        PC1  (52.30，通达OA，Windows)
+#             → 内网2 (192.168.93.0/24，域 whoamianony.org)：
+#                       Web2/PC1 双网卡延伸 (93.10 / 93.20)
+#                       DC    (93.30，Windows Server 2012 R2)
+#                       PC2   (93.40，Windows 7，MS17-010 未打补丁)
+# 这个例子相对 VulnStack8 的教学价值：
+#   ① 单入口靶场 —— Redis 未授权是唯一外网面，封掉它整条链是否归零？
+#   ② 跳板二选一 —— 内网1 的 Web2 / PC1 是互斥的两条进入内网2 的路
+#   ③ 真实防御对抗 —— 域控防火墙挡住 psexec，逼出「先关防守再打」的跃迁
+# =============================================================================
+
+meta:
+  name: VulnStack7 三层靶场攻击链
+  target: 红日 VulnStack 7（本地 VMware 自建靶场）
+  author: cypewake
+  date: 2026-10-19
+  scenario: >
+    三层网络：外网仅暴露 Web1 的 Redis(6379)；内网1 与内网2 隔离，
+    只能经 Web2 / PC1 双网卡跳转。目标是拿到 whoamianony.org 域控权限。
+    本文件建模了两条互斥的跳板路线（Web2 Laravel+Docker / PC1 通达OA），
+    在内网2 汇聚后分「永恒之蓝抓凭据」与「明文直连」两种打域控方式。
+
+objectives:
+  - id: domain-admin
+    name: 域管理员权限（whoamianony.org）
+    tactic: Privilege Escalation
+    note: 拿到 DC(192.168.93.30) 的 system 权限，控制全域五台主机
+
+nodes:
+  # ---------------------------------------------------------------- 入口
+  - id: redis-unauth
+    name: Redis 未授权访问打点
+    tactic: Initial Access
+    technique: T1190
+    kind: entry
+    asset: web1 (192.168.59.141:6379)
+    detectability: medium
+    detect_tips:
+      - "资产测绘监控：6379 等数据服务端口绝不该出现在公网/外网段"
+      - "Redis 命令审计：CONFIG SET / SET dir 异常写配置"
+    impact: 3
+    fail_rate: 0.1
+    note: 红日7 唯一外网面。Redis 以 root 运行且未设 requirepass —— 单入口设计让后面的 SPOF 分析极其直观
+
+  - id: web1-shell
+    name: 写 crontab/SSH key 拿 Web1 shell
+    tactic: Execution
+    technique: T1053
+    kind: foothold
+    asset: web1
+    requires: [redis-unauth]
+    detectability: low
+    detect_tips:
+      - "文件完整性监控：/root/.ssh/authorized_keys 变更（几乎没有单位部署）"
+      - "crontab 变更审计 + 新增反弹 shell 进程的父子关系"
+    impact: 3
+    fail_rate: 0.15
+    note: root 跑 Redis 意味着写谁的 crontab 都是 root 权限。ATT&CK 正式编号是 T1098.004(SSH key)/T1053.003(cron)，本地子集以 T1053 概括
+
+  # ---------------------------------------------------------------- 内网1 横向
+  - id: web1-recon
+    name: Web1 双网卡发现与内网1 探测
+    tactic: Discovery
+    technique: T1018
+    kind: lateral
+    asset: web1 → 192.168.52.0/24
+    requires: [web1-shell]
+    detectability: low
+    detect_tips:
+      - "内网 NTA / 流量镜像（靶场与中小企业基本没有）"
+    impact: 2
+    fail_rate: 0.1
+    note: ip addr 发现 52.10 第二网卡，fscan 扫出 Web2(Laravel) 与 PC1(通达OA)
+
+  - id: web2-laravel
+    name: Laravel CVE-2021-3129 RCE 拿 Docker 内 shell
+    tactic: Lateral Movement
+    technique: T1210
+    kind: lateral
+    asset: web2 (192.168.52.20)
+    requires: [web1-recon]
+    detectability: high
+    detect_tips:
+      - "公开 PoC 流量特征明显：POST /ignition/execute-solution 大量请求"
+      - "Web 访问日志中 file_get_contents 等危险参数回显"
+    impact: 4
+    fail_rate: 0.35
+    note: Ignition 组件 RCE，需要 debug 模式开启；命中后落点是 Docker 容器内
+
+  - id: docker-escape
+    name: Docker 逃逸拿 Web2 宿主
+    tactic: Privilege Escalation
+    technique: T1068
+    kind: foothold
+    asset: web2 宿主机 (192.168.93.10)
+    requires: [web2-laravel]
+    detectability: low
+    detect_tips:
+      - "容器内 mount /proc/mounts 挂载与 docker.sock 访问审计"
+      - "宿主上异常的 namespace 切换进程"
+    impact: 3
+    fail_rate: 0.45
+    note: 走特权容器/挂载 docker.sock 的老路子。ATT&CK 正式编号 T1611(Escape to Host)，本地子集以 T1068 概括；逃逸成功才拿得到 93 网段出口能力
+
+  - id: frp-proxy
+    name: FRP/CS 代理打通内网2 通道
+    tactic: Command and Control
+    technique: T1090
+    kind: lateral
+    asset: web2 → 192.168.93.0/24
+    requires: [docker-escape]
+    detectability: medium
+    detect_tips:
+      - "frp 协议特征已有公开 IDS 规则（自定义端口可绕一时）"
+      - "出口流量中的长连接隧道行为"
+    impact: 2
+    fail_rate: 0.15
+    note: 经典的 socks5/多级转发，把攻击机的路由延伸进 93 段
+
+  - id: pc1-oa
+    name: 通达 OA 漏洞打 PC1（备选跳板）
+    tactic: Lateral Movement
+    technique: T1210
+    kind: lateral
+    asset: pc1 (192.168.52.30)
+    requires: [web1-recon]
+    detectability: medium
+    detect_tips:
+      - "通达 OA 历史漏洞利用路径有公开 WAF 特征（loginAction 快速组合请求）"
+      - "IIS/Tomcat 中间件日志中的异常 JSP 落地"
+    impact: 4
+    fail_rate: 0.3
+    note: 路线 B 入口：PC1 双网卡直连 93 段，且是 Windows —— 免去 Docker 逃逸，还能直接 mimikatz
+
+  - id: pc1-cred
+    name: PC1 抓取本机与域凭据
+    tactic: Credential Access
+    technique: T1003.001
+    kind: lateral
+    asset: pc1
+    requires: [pc1-oa]
+    detectability: medium
+    detect_tips:
+      - "Sysmon 10 / EDR 的 LSASS 句柄访问告警"
+      - "procdump 等工具落盘的告警"
+    impact: 4
+    fail_rate: 0.2
+    note: 抓到域用户 bunny:Bunny2021，若域管口令复用则直接拿到 administrator:Whoami2021
+
+  # ---------------------------------------------------------------- 内网2 汇聚
+  - id: recon-93
+    name: 内网2 存活探测与 SMB 指纹
+    tactic: Discovery
+    technique: T1018
+    kind: lateral
+    asset: 192.168.93.0/24
+    requires: [frp-proxy, pc1-cred]
+    detectability: low
+    detect_tips:
+      - "域内横向扫描基线（Windows 事件 4648 显式凭据探测较少人开）"
+    impact: 2
+    fail_rate: 0.15
+    note: 两条路线在此汇聚：smb_version 探出 DC(93.30) 与 PC2(93.40)，445 全开
+
+  - id: ms17010-pc2
+    name: 永恒之蓝打 PC2
+    tactic: Lateral Movement
+    technique: T1210
+    kind: lateral
+    asset: pc2 (192.168.93.40)
+    requires: [recon-93]
+    detectability: high
+    detect_tips:
+      - "IDS/IPS 对 MS17-010 原生特征告警"
+      - "利用失败常直接蓝屏 —— 噪声最大的横向手法"
+    impact: 4
+    fail_rate: 0.3
+    note: Win7 未装 MS17-010 补丁，bind_tcp 弹回 SYSTEM；高检测度是它换来的代价
+
+  - id: cred-dump-pc2
+    name: PC2 mimikatz 抓域管明文
+    tactic: Credential Access
+    technique: T1003.001
+    kind: lateral
+    asset: pc2
+    requires: [ms17010-pc2]
+    detectability: medium
+    detect_tips:
+      - "Sysmon 10：LSASS 访问与 mimikatz 驱动加载"
+      - "抓完先 migrate x64 进程再 dump，降暴露"
+    impact: 5
+    fail_rate: 0.15
+    note: 拿到 administrator:Whoami2021 —— 域管明文是后两步的全部筹码
+
+  - id: fw-off-dc
+    name: 远程关闭域控防火墙
+    tactic: Defense Evasion
+    technique: T1562.001
+    kind: lateral
+    asset: dc (192.168.93.30)
+    requires: [cred-dump-pc2]
+    detectability: medium
+    detect_tips:
+      - "事件 7045：DC 上新增服务（sc \\dc create 痕迹极重）"
+      - "netsh advfirewall 配置变更审计"
+    impact: 2
+    fail_rate: 0.25
+    note: 红日7 的真实教学点 —— psexec 被防火墙挡住，先经 IPC$ 创建服务执行 netsh 关防守，再打
+
+  - id: ipc-dc
+    name: 明文口令 IPC$ 直连域控
+    tactic: Lateral Movement
+    technique: T1021.002
+    kind: lateral
+    asset: dc
+    requires: [cred-dump-pc2]
+    detectability: medium
+    detect_tips:
+      - "4624 Type 3 网络登录 + 5140 IPC$ 共享访问，源为非管理主机"
+      - "口令明文出现在命令行（4688 命令行审计）"
+    impact: 3
+    fail_rate: 0.35
+    note: 有明文就无需 PTH：net use \\dc\ipc$ 建立会话。等价方向 also 在路线 B 从 PC1 直达
+
+  - id: psexec-dc
+    name: Psexec/SMB 登录域控
+    tactic: Lateral Movement
+    technique: T1021.002
+    kind: lateral
+    asset: dc
+    requires: [fw-off-dc, ipc-dc]
+    detectability: high
+    detect_tips:
+      - "7045 PSEXESVC 服务安装 —— psexec 是日志最全的横向手法"
+      - "admin$ 共享访问 + 4624 Type 3 组合告警"
+    impact: 5
+    fail_rate: 0.2
+    note: 两条路线的终点汇合：A 线先关防火墙再打，B 线凭明文直接会话
+
+  # ---------------------------------------------------------------- 目标
+  - id: domain-admin
+    name: 域管理员权限（whoamianony.org）
+    tactic: Privilege Escalation
+    technique: T1068
+    kind: objective
+    asset: dc (192.168.93.30)
+    requires: [psexec-dc]
+    detectability: medium
+    detect_tips:
+      - "4624 Type 3 中 administrator 的非常规源主机登录"
+      - "域管哈希/明文出现在任何非 DC 主机的告警（Canary 凭据思路）"
+    impact: 10
+    fail_rate: 0.05
+    note: 拿下 DC 后可做 DCSync 导出全域哈希 —— 复盘时这也是「改域管密码没用了」的根治依据
+
+edges:
+  # 入口与立足
+  - src: redis-unauth
+    dst: web1-shell
+    condition: Redis 以 root 运行且 crontab/authorized_keys 可写
+    fail_rate: 0.15
+  - src: web1-shell
+    dst: web1-recon
+    condition: 拿到交互 shell 且第二网卡路由可达
+    fail_rate: 0.1
+  # 路线 A：Web2 跳板
+  - src: web1-recon
+    dst: web2-laravel
+    condition: fscan 发现 Laravel 且 debug 模式开启
+    fail_rate: 0.2
+  - src: web2-laravel
+    dst: docker-escape
+    condition: 特权容器或挂载 docker.sock
+    fail_rate: 0.45
+  - src: docker-escape
+    dst: frp-proxy
+    condition: 宿主可对外建立隧道连接
+    fail_rate: 0.15
+  # 路线 B：PC1 跳板
+  - src: web1-recon
+    dst: pc1-oa
+    condition: 通达 OA 漏洞版本命中
+    fail_rate: 0.25
+  - src: pc1-oa
+    dst: pc1-cred
+    condition: 拿到 PC1 本地管理员权限
+    fail_rate: 0.2
+  # 汇聚与内网2
+  - src: frp-proxy
+    dst: recon-93
+    condition: 代理链路稳定，SMB 探测可达
+    fail_rate: 0.15
+  - src: pc1-cred
+    dst: recon-93
+    condition: 凭据可用于 93 段枚举
+    fail_rate: 0.2
+  - src: recon-93
+    dst: ms17010-pc2
+    condition: PC2 未安装 MS17-010 补丁
+    fail_rate: 0.25
+  - src: ms17010-pc2
+    dst: cred-dump-pc2
+    condition: 弹回 SYSTEM 会话且可迁移 x64
+    fail_rate: 0.2
+  - src: cred-dump-pc2
+    dst: fw-off-dc
+    condition: 域管明文有效且 IPC$ 可达 DC
+    fail_rate: 0.2
+  - src: cred-dump-pc2
+    dst: ipc-dc
+    condition: 明文口令复用命中域管
+    fail_rate: 0.25
+  - src: fw-off-dc
+    dst: psexec-dc
+    condition: 防火墙已关且 admin$ 可写
+    fail_rate: 0.15
+  - src: ipc-dc
+    dst: psexec-dc
+    condition: IPC$ 会话成功，445 通
+    fail_rate: 0.2
+  - src: psexec-dc
+    dst: domain-admin
+    condition: SYSTEM 服务登录成功
+    fail_rate: 0.1

@@ -93,8 +93,19 @@
       "techniques": {
         "T1021": "Remote Services",
         "T1021.002": "Remote Services: SMB/Windows Admin Shares",
+        "T1210": "Exploitation of Remote Services",
         "T1570": "Lateral Tool Transfer",
         "T1550": "Use of Alternate Authentication Material"
+      }
+    },
+    "Defense Evasion": {
+      "id": "TA0005",
+      "name_zh": "防御规避",
+      "color": "#C5CAE9",
+      "order": 10,
+      "data_sources": ["服务创建审计 7045", "netsh 防火墙配置变更", "进程命令行审计"],
+      "techniques": {
+        "T1562.001": "Impair Defenses: Disable or Modify Tools"
       }
     },
     "Command and Control": {
